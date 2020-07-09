@@ -34,7 +34,8 @@ class Roles extends BaseController
     public const LISTING_COLUMNS = [
         'role_id',
         'role_name',
-        'role_is_user',
+        'role_description',
+        //'role_is_user',
         'meta_object_uuid',
         'granted_roles_names',
     ];

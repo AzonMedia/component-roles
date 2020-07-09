@@ -32,8 +32,7 @@ class Role extends BaseController
             '/admin/roles/role/{uuid}'      => [
                 Method::HTTP_GET => [self::class, 'view'],
                 Method::HTTP_PUT => [self::class, 'update'],
-                //deletion is now allowed - instead the users can be disabled
-                //Method::HTTP_DELETE => [self::class, 'remove'],//the ActiveRecordDefaultController could be used as well but for completeness of the API this is also provided
+                Method::HTTP_DELETE => [self::class, 'remove'],//the ActiveRecordDefaultController could be used as well but for completeness of the API this is also provided
             ],
 
             '/admin/roles/role/{uuid}/role/{role_uuid}'      => [ //not used by the UI but still useful API methods
@@ -52,9 +51,8 @@ class Role extends BaseController
         'role_id',
         'role_name',
         'role_description',
-        'role_is_user',
+        //'role_is_user',//on the roles listing there is no need to show this - all roles shown there are non-user roles and this is non editable
         'meta_object_uuid',
-        //'granted_roles_names',// no longer needed
         'granted_roles_uuids',
     ];
 
@@ -62,10 +60,8 @@ class Role extends BaseController
      * The editable properties form the UI. Must be a subset of @see self::RECORD_PROPERTIES
      */
     public const EDITABLE_RECORD_PROPERTIES = [
-        'user_name',
-        'user_description',
-        //'inherits_role_name',
-        //'granted_roles_names',
+        'role_name',
+        'role_description',
         'granted_roles_uuids',
     ];
 
@@ -81,21 +77,18 @@ class Role extends BaseController
      */
     public function view(string $uuid): ResponseInterface
     {
-        $User = new \GuzabaPlatform\Platform\Authentication\Models\User($uuid);
+        $Role = new \GuzabaPlatform\Platform\Authentication\Models\Role($uuid);
         $struct = [];
         $struct['record_properties'] = self::RECORD_PROPERTIES;
         $struct['editable_record_properties'] = self::EDITABLE_RECORD_PROPERTIES;
-        $struct['inherited_roles'] = $User->get_role()->get_inherited_roles_names_and_uuids();//only directly inherited roles
-        $struct = [$struct, ...$User->get_record_data()];
+        $struct['inherited_roles'] = $Role->get_inherited_roles_names_and_uuids();//only directly inherited roles
+        $struct = [$struct, ...$Role->get_record_data()];
         return self::get_structured_ok_response($struct);
     }
 
     /**
-     * @param string $user_name
-     * @param string $user_email
-     * @param string $user_password
-     * @param string $user_password_confirmation
-     * @param bool $user_is_disabled
+     * The role_is_user can not be set or changed. It is set automatically on user creation.
+     * @param string $role_name
      * @param array $granted_roles_uuids
      * @return ResponseInterface
      * @throws ConfigurationException
@@ -106,21 +99,18 @@ class Role extends BaseController
      * @throws RunTimeException
      * @throws \Azonmedia\Exceptions\InvalidArgumentException
      */
-    public function create(string $user_name, string $user_email, string $user_password, string $user_password_confirmation, bool $user_is_disabled, array $granted_roles_uuids): ResponseInterface
+    public function create(string $role_name, string $role_description, array $granted_roles_uuids): ResponseInterface
     {
-        $user_properties = func_get_args();
-        unset($user_properties['$ranted_roles_uuids']);
-        $User = \GuzabaPlatform\Users\Models\Users::create($user_properties, $granted_roles_uuids);
-        return self::get_structured_ok_response( ['message' => sprintf(t::_('The user %1$s was created with UUID %2$s.'), $User->user_name, $User->get_uuid() )] );
+        //$role_properties = func_get_args();
+        $role_properties = (new ReflectionMethod(__CLASS__, __FUNCTION__))->getArgumentsAsArray(func_get_args());
+        unset($role_properties['granted_roles_uuids']);
+        $Role = \GuzabaPlatform\Roles\Models\Roles::create($role_properties, $granted_roles_uuids);
+        return self::get_structured_ok_response( ['message' => sprintf(t::_('The role %1$s was created with UUID %2$s.'), $Role->role_name, $Role->get_uuid() )] );
     }
 
     /**
      * @param string $uuid
-     * @param string $user_name
-     * @param string $user_email
-     * @param string $user_password
-     * @param string $user_password_confirmation
-     * @param bool $user_is_disabled
+     * @param string $role_name
      * @param array $granted_roles_uuids
      * @return ResponseInterface
      * @throws ConfigurationException
@@ -131,17 +121,14 @@ class Role extends BaseController
      * @throws RunTimeException
      * @throws \Azonmedia\Exceptions\InvalidArgumentException
      */
-    public function update(string $uuid, string $user_name, string $user_email, string $user_password, string $user_password_confirmation, bool $user_is_disabled, array $granted_roles_uuids): ResponseInterface
+    public function update(string $uuid, string $role_name, string $role_description, array $granted_roles_uuids): ResponseInterface
     {
-        $user_properties = (new ReflectionMethod(__CLASS__, __FUNCTION__))->getArgumentsAsArray(func_get_args());
-        unset($user_properties['granted_roles_uuids'], $user_properties['uuid']);
+        $role_properties = (new ReflectionMethod(__CLASS__, __FUNCTION__))->getArgumentsAsArray(func_get_args());
+        unset($role_properties['granted_roles_uuids'], $role_properties['uuid']);
 
-        //print 'user properties:'.PHP_EOL;
-        print_r($user_properties);
-
-        $User = new \GuzabaPlatform\Platform\Authentication\Models\User($uuid);
-        \GuzabaPlatform\Users\Models\Users::update($User, $user_properties, $granted_roles_uuids);
-        return self::get_structured_ok_response( ['message' => sprintf(t::_('The user %1$s with UUID %2$s was updated.'), $User->user_name, $User->get_uuid() )] );
+        $Role = new \Guzaba2\Authorization\Role($uuid);
+        \GuzabaPlatform\Roles\Models\Roles::update($Role, $role_properties, $granted_roles_uuids);
+        return self::get_structured_ok_response( ['message' => sprintf(t::_('The role %1$s with UUID %2$s was updated.'), $Role->role_name, $Role->get_uuid() )] );
     }
 
     /**
@@ -152,12 +139,13 @@ class Role extends BaseController
      */
     public function remove(): ResponseInterface
     {
-        throw new NotImplementedException(sprintf(t::_('Deleting users is not allowed. Please use %1$s() (route: %2$s).'), __CLASS__.'::disable', '/admin/users/user/{uuid}/disable' ));
+        //throw new NotImplementedException(sprintf(t::_('Deleting users is not allowed. Please use %1$s() (route: %2$s).'), __CLASS__.'::disable', '/admin/users/user/{uuid}/disable' ));
+        //TODO implement
     }
 
     /**
-     * @param string $uuid
-     * @param string $role_uuid
+     * @param string $uuid Receiver role
+     * @param string $role_uuid Role to be granted
      * @return ResponseInterface
      * @throws ConfigurationException
      * @throws InvalidArgumentException
@@ -168,10 +156,10 @@ class Role extends BaseController
      */
     public function grant_role(string $uuid, string $role_uuid): ResponseInterface
     {
-        $User = new \GuzabaPlatform\Platform\Authentication\Models\User($uuid);
-        $Role = new \Guzaba2\Authorization\Role($role_uuid);
-        $User->grant_role($Role);
-        return self::get_structured_ok_response( ['message' => sprintf(t::_('The user %1$s was granted role %2$s.'), $User->user_name, $Role->role_name )] );
+        $Role = new \Guzaba2\Authorization\Role($uuid);
+        $RoleToGrant = new \Guzaba2\Authorization\Role($role_uuid);
+        $Role->grant_role($RoleToGrant);
+        return self::get_structured_ok_response( ['message' => sprintf(t::_('The role %1$s was granted role %2$s.'), $Role->role_name, $RoleToGrant->role_name )] );
     }
 
     /**
@@ -187,10 +175,10 @@ class Role extends BaseController
      */
     public function revoke_role(string $uuid, string $role_uuid): ResponseInterface
     {
-        $User = new \GuzabaPlatform\Platform\Authentication\Models\User($uuid);
-        $Role = new \Guzaba2\Authorization\Role($role_uuid);
+        $Role = new \Guzaba2\Authorization\Role($uuid);
+        $RoleToRevoke = new \Guzaba2\Authorization\Role($role_uuid);
         $User->revoke_role($Role);
-        return self::get_structured_ok_response( ['message' => sprintf(t::_('The user %1$s was revoked role %2$s.'), $User->user_name, $Role->role_name )] );
+        return self::get_structured_ok_response( ['message' => sprintf(t::_('The role %1$s was revoked role %2$s.'), $Role->role_name, $RoleToRevoke->role_name )] );
     }
 
 

@@ -4,7 +4,7 @@
             <div id="data" class="tab">
                 <h3>Roles <b-button variant="success" @click="show_update_modal('post', newObject)" size="sm">Create New</b-button> </h3>
 
-                <!-- ======================= USERS LISTING ================== -->
+                <!-- ======================= ROLES LISTING ================== -->
                 <template>
                     <b-form @submit="submitSearch">
                         <b-table striped show-empty :items="items" :fields="fields" empty-text="No records found!" @row-clicked="row_click_handler" no-local-sorting @sort-changed="sortingChanged" head-variant="dark" table-hover>
@@ -12,10 +12,10 @@
                             <template slot="top-row" slot-scope="{ fields }">
                                 <td v-for="field in fields">
                                     <!-- <template v-if="field.key=='meta_object_uuid'"> -->
-                                    <template v-if="field.key=='action'">
+                                    <template v-if="field.key == 'action'">
                                         <b-button size="sm" variant="outline-primary" type="submit" @click="search()">Search</b-button>
                                     </template>
-                                    <template v-else-if="field.key=='granted_roles_names'">
+                                    <template v-else-if="field.key == 'granted_roles_names'">
                                         <!-- <b-button size="sm" variant="outline-primary" type="submit" @click="search()">Search</b-button> -->
                                         <!-- <v-select v-model="searchValues[field.key]" label="role_name" :options="roles"></v-select> -->
                                         <!-- while the column is named inherits_role_name actually object_meta_uuid is provided so the field name should be inherits_role_uuid -->
@@ -78,12 +78,9 @@
                                 </b-form-checkbox-group>
 
                             </template>
-                            <template v-else-if="index.indexOf('password') != -1">
-                                <b-form-input v-model="putValues[index]" :disabled="!editable_record_properties.includes(index)" type="password"></b-form-input>
-                            </template>
-                            <template v-else-if="index === 'user_is_disabled'">
-                                <b-form-checkbox name="user_is_disabled" :value="true" :unchecked-value="false" v-model="putValues.user_is_disabled"></b-form-checkbox>
-                            </template>
+                            <!-- <template v-else-if="index === 'role_is_user'">
+                                {{value}}
+                            </template> -->
                             <template v-else-if="action === 'delete'">
                                 <b-form-input :value="value" disabled></b-form-input>
                             </template>
@@ -91,15 +88,6 @@
                                 <b-form-input v-model="putValues[index]" :disabled="!editable_record_properties.includes(index)"></b-form-input>
                             </template>
                         </b-form-group>
-
-                        <!--
-                        <b-form-group label="User Password:" label-align="right" label-cols="3">
-                            <b-form-input v-model="putValues['user_password']"></b-form-input>
-                        </b-form-group>
-                        <b-form-group label="Password Confirmation:" label-align="right" label-cols="3">
-                            <b-form-input v-model="putValues['user_password_confirmation']"></b-form-input>
-                        </b-form-group>
-                        -->
                     </template>
 
                     <template v-else>
@@ -311,20 +299,20 @@
                     })
                     .catch(err => {
                         //console.log(err);
-                        this.$bvToast.toast('Users data could not be loaded due to server error.' + '\n' + err.response.data.message)
+                        this.$bvToast.toast('Roles data could not be loaded due to server error.' + '\n' + err.response.data.message)
                     });
             },
 
             search() {
                 this.reset_params();
-                this.get_users();
+                this.get_roles();
             },
 
             //reset_params(className){
             reset_params() {
                 this.currentPage = 1;
                 this.totalItems = 0;
-                this.sortBy = 'user_name';
+                this.sortBy = 'role_name';
             },
 
             row_click_handler(record, index) {
@@ -349,15 +337,12 @@
                         this.putValues[key] = row[key];
                     }
                 }
-                this.putValues['user_password'] = '';
-                this.putValues['user_password_confirmation'] = '';
 
                 this.granted_roles = this.putValues.granted_roles_uuids;
-                //console.log(this.granted_roles);
 
                 switch (this.action) {
                     case 'delete' :
-                        this.modalTitle = 'Deleting object';
+                        this.modalTitle = 'Deleting role';
                         this.modalVariant = 'danger';
                         this.ButtonVariant = 'danger';
                         //this.actionTitle = 'Are you sure, you want to delete object:';
@@ -365,14 +350,14 @@
                         break;
 
                     case 'put' :
-                        this.modalTitle = 'Edit object';
+                        this.modalTitle = 'Edit role';
                         this.modalVariant = 'success';
                         this.ButtonVariant = 'success';
                         this.ButtonTitle = 'Save';
                         break;
 
                     case 'post' :
-                        this.modalTitle = 'Create new object';
+                        this.modalTitle = 'Create new role';
                         this.modalVariant = 'success';
                         this.ButtonVariant = 'success';
                         this.ButtonTitle = 'Save';
@@ -380,7 +365,7 @@
                 }
 
                 if (!this.crudObjectUuid && this.action != "post") {
-                    this.requestError = "This object has no meta data!";
+                    this.requestError = "This role has no meta data!";
                     this.actionState = true;
                     this.loadingState = false;
                     this.ButtonTitle = 'Ok';
@@ -404,31 +389,33 @@
 
                     //because of the custom login needed for handling the granted roles the ActiveRecordDefaultControllercan not be used
                     //let url = '/admin/crud-operations';
-                    let url = '/admin/users/user';
+                    let url = '/admin/roles/role';
 
-                    console.log(this.putValues);
+                    this.putValues.granted_roles_uuids = this.granted_roles;
 
                     switch(this.action) {
                         case 'delete' :
-                            self.loadingMessage = 'Deleting object with uuid: ' + this.crudObjectUuid;
+                            self.loadingMessage = 'Deleting role with uuid: ' + this.crudObjectUuid;
                             url += '/' + this.crudObjectUuid;
                             break;
 
                         case 'put' :
-                            self.loadingMessage = 'Saving object with uuid: ' + this.crudObjectUuid;
+                            self.loadingMessage = 'Saving role with uuid: ' + this.crudObjectUuid;
                             url += '/' + this.crudObjectUuid;
                             sendValues = this.putValues;
                             delete sendValues['meta_object_uuid'];
                             break;
 
                         case 'post' :
-                            self.loadingMessage = 'Saving new object';
+                            self.loadingMessage = 'Saving new role';
                             sendValues = this.putValues;
                             delete sendValues['meta_object_uuid'];
                             break;
                     }
                     //sendValues.crud_class_name = this.selectedClassName.split('\\').join('-');
-                    sendValues.crud_class_name = 'GuzabaPlatform\\Platform\\Authorization\\Models\\User';
+                    //sendValues.crud_class_name = 'GuzabaPlatform\\Platform\\Authorization\\Models\\Role';
+                    //sendValues.crud_class_name = 'Guzaba2\\Authorization\\Role';
+                    //this is not needed
                     //due to the Roles management the basic CRUD operation can not be used and a custom controller is needed
 
                     this.$http({
@@ -437,22 +424,23 @@
                         data: sendValues
                     })
                         .then(resp => {
-                            self.requestError = '';
-                            self.successfulMessage = resp.data.message;
-                            self.get_users(self.selectedClassName)
+                            console.log(resp);
+                            this.requestError = '';
+                            this.successfulMessage = resp.data.message;
+                            this.get_roles()
                         })
                         .catch(err => {
                             if (err.response.data.message) {
-                                self.requestError = err.response.data.message;
+                                this.requestError = err.response.data.message;
                             } else {
-                                self.requestError = err;
+                                this.requestError = err;
                             }
                         })
-                        .finally(function(){
-                            self.loadingState = false
-                            self.actionState = true
-                            self.ButtonTitle = 'OK';
-                            self.ButtonVariant = 'success';
+                        .finally( () => {
+                            this.loadingState = false
+                            this.actionState = true
+                            this.ButtonTitle = 'OK';
+                            this.ButtonVariant = 'success';
                         });
                 }
             },
@@ -461,29 +449,11 @@
                 this.sortBy = ctx.sortBy;
                 this.sortDesc = ctx.sortDesc ? 1 : 0;
 
-                this.get_users(this.selectedClassName);
+                this.get_roles();
             }
         },
         props: {
             contentArgs: {}
-        },
-        watch:{
-            contentArgs: {
-                handler: function(value) {
-                    //this.get_users(value.selectedClassName.split('\\').join('.'));
-                }
-            },
-            currentPage: {
-                handler: function(value) {
-                    //this.get_users(this.selectedClassName);
-                }
-            },
-            // $route (to, from) { // needed because by default no class is loaded and when it is loaded the component for the two routes is the same.
-            //     this.selectedClassName = this.$route.params.class.split('-').join('\\');
-            //     //console.log("ASD " + this.selectedClassName)
-            //     this.get_users(this.selectedClassName);
-            //
-            // }
         },
         mounted() {
             this.get_roles();
@@ -516,7 +486,7 @@
     }
 
     #data {
-        width: 65%;
+        width: 100%;
         font-size: 10pt;
     }
 

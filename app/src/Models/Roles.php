@@ -11,6 +11,7 @@ use Guzaba2\Base\Exceptions\LogicException;
 use Guzaba2\Base\Exceptions\RunTimeException;
 use Guzaba2\Database\Interfaces\ConnectionInterface;
 use Guzaba2\Kernel\Exceptions\ConfigurationException;
+use Guzaba2\Orm\ActiveRecord;
 use Guzaba2\Orm\Exceptions\MultipleValidationFailedException;
 use Guzaba2\Orm\Exceptions\RecordNotFoundException;
 use Guzaba2\Translator\Translator as t;
@@ -33,6 +34,7 @@ class Roles extends Base
         'meta_object_uuid',//the same as role_uuid
         'role_id',
         'role_name',
+        'role_description',
         'inherits_role_uuid',//check for the given role in the whole inheritance tree
         'inherits_role_name',
         'granted_role_uuid',//check for the given role only in the immediately granted roles
@@ -81,7 +83,7 @@ class Roles extends Base
         }
         $Role->write();
 
-        $current_granted_roles_uuids = $Role->get_role()->get_inherited_roles_uuids();
+        $current_granted_roles_uuids = $Role->get_inherited_roles_uuids();
         foreach ($current_granted_roles_uuids as $current_inherited_role_uuid) {
             if (!in_array($current_inherited_role_uuid, $granted_roles_uuids)) {
                 $RoleToRevoke = new Role($current_inherited_role_uuid);
@@ -199,7 +201,8 @@ class Roles extends Base
 
         $q = "
 SELECT
-    roles.role_id, roles.role_name, roles.role_is_user, roles.role_description,
+    -- roles.role_id, roles.role_name, roles.role_is_user, roles.role_description,
+    roles.role_id, roles.role_name, roles.role_description,
     meta.meta_object_uuid, meta.meta_class_id, meta.meta_object_create_microtime, meta.meta_object_last_update_microtime,
     meta.meta_object_create_role_id, meta.meta_object_last_update_role_id,
     GROUP_CONCAT(roles_hierarchy.inherited_role_id SEPARATOR ',') AS granted_roles_ids,
@@ -220,7 +223,7 @@ GROUP BY
         //because the inherited role filter is applied after the query is executed there is no point having two parallel queries (one for data and one for total count if there is limit provided)
 
         $data = $Connection->prepare($q)->execute($b)->fetchAll();
-        print_r($data);
+
         $total_found_rows = count($data);
         for ($aa = 0; $aa < $total_found_rows; $aa++) {
             if (!$data[$aa]['granted_roles_ids']) {
@@ -239,7 +242,7 @@ GROUP BY
                 $data[$aa]['granted_roles_uuids'] = explode(',', $data[$aa]['granted_roles_uuids']);
             }
 
-            $data[$aa]['role_is_user'] = (bool) $data[$aa]['role_is_user'];
+            //$data[$aa]['role_is_user'] = (bool) $data[$aa]['role_is_user'];
         }
 
         return $data;
