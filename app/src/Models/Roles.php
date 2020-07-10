@@ -90,9 +90,9 @@ class Roles extends Base
             }
         }
 
-        foreach ($granted_roles_uuids as $inherited_role_uuid) {
-            if (!in_array($inherited_role_uuid, $current_granted_roles_uuids)) {
-                $RoleToGrant = new Role($inherited_role_uuid);
+        foreach ($granted_roles_uuids as $granted_role_uuid) {
+            if (!in_array($granted_role_uuid, $current_granted_roles_uuids)) {
+                $RoleToGrant = new Role($granted_role_uuid);
                 $Role->grant_role($RoleToGrant);
             }
         }
