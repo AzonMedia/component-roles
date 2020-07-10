@@ -82,11 +82,10 @@ class Roles extends Base
             $Role->{$property_name} = $property_value;
         }
         $Role->write();
-
         $current_granted_roles_uuids = $Role->get_inherited_roles_uuids();
-        foreach ($current_granted_roles_uuids as $current_inherited_role_uuid) {
-            if (!in_array($current_inherited_role_uuid, $granted_roles_uuids)) {
-                $RoleToRevoke = new Role($current_inherited_role_uuid);
+        foreach ($current_granted_roles_uuids as $current_granted_role_uuid) {
+            if (!in_array($current_granted_role_uuid, $granted_roles_uuids)) {
+                $RoleToRevoke = new Role($current_granted_role_uuid);
                 $Role->revoke_role($RoleToRevoke);
             }
         }

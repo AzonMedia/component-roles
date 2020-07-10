@@ -125,7 +125,6 @@ class Role extends BaseController
     {
         $role_properties = (new ReflectionMethod(__CLASS__, __FUNCTION__))->getArgumentsAsArray(func_get_args());
         unset($role_properties['granted_roles_uuids'], $role_properties['uuid']);
-
         $Role = new \Guzaba2\Authorization\Role($uuid);
         \GuzabaPlatform\Roles\Models\Roles::update($Role, $role_properties, $granted_roles_uuids);
         return self::get_structured_ok_response( ['message' => sprintf(t::_('The role %1$s with UUID %2$s was updated.'), $Role->role_name, $Role->get_uuid() )] );
