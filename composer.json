@@ -4,7 +4,7 @@
     "description": "GuzabaPlatform Role management component",
     "keywords": ["role management"],
     "homepage": "https://github.com/AzonMedia/component-roles",
-    "license": "BSD-3-Clause",
+    "license": "MIT",
     "minimum-stability": "dev",
     "authors": [
         {
